@@ -1,5 +1,7 @@
 import cv2 as cv
 import numpy as np
+import mmcv
+import copy 
 
 def loadDetections(txt_path):
     dets = []
@@ -41,7 +43,12 @@ def removePointFromRoi(boxes, points, descriptors):
 def drawlines(img1,img2,lines,pts1,pts2):
     ''' img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines '''
-    r , c = img1.shape[1], img1.shape[0]
+    
+    r , c = img1.shape[0], img1.shape[1]
+
+    img1 = cv.cvtColor(img1, cv.COLOR_GRAY2BGR)
+    img2 = cv.cvtColor(img2, cv.COLOR_GRAY2BGR)
+
     for r,pt1,pt2 in zip(lines,pts1,pts2):
         color = tuple(np.random.randint(0,255,3).tolist())
         x0,y0 = map(int, [0, -r[2]/r[1] ])
@@ -50,3 +57,33 @@ def drawlines(img1,img2,lines,pts1,pts2):
         img1 = cv.circle(img1,tuple(pt1),5,color,-1)
         img2 = cv.circle(img2,tuple(pt2),5,color,-1)
     return img1,img2
+
+def loadCameraParameters(intpath, extpath):
+    fs1 = cv.FileStorage(intpath, cv.FILE_STORAGE_READ)
+    fn_k = fs1.getNode("camera_matrix")
+    fn_d = fs1.getNode("distortion_coefficients")
+    
+    K = fn_k.mat()
+    d = fn_d.mat()
+
+    fs2 = cv.FileStorage(extpath, cv.FILE_STORAGE_READ)
+    fn_r = fs2.getNode("Camera 0").getNode("R")
+    fn_t = fs2.getNode("Camera 0").getNode("t")
+
+    R = fn_r.mat()
+    t = fn_t.mat()
+
+    return K, d, R, t
+
+
+def dumpPairFromVideo(path):
+
+    video = mmcv.VideoReader(path)
+
+    for index in range(0, 8002):
+        frame = video[index]
+
+        if index+1 >= 6100 and index+1 <= 7000:
+            cv.imwrite('./tmp/input_%d.jpg' % (index+1), frame)
+
+
